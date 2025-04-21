@@ -13,8 +13,8 @@ A web application that lets users record audio, transcribe it using OpenAI's Whi
 ## Project Structure
 
 ```
-client/           # React frontend
-server/           # Python Flask backend
+frontend/           # React frontend
+backend/           # Python Flask backend
 ```
 
 ## Prerequisites
@@ -29,7 +29,7 @@ server/           # Python Flask backend
 
 1. Navigate to the server directory:
    ```
-   cd server
+   cd backend
    ```
 
 2. Create a virtual environment:
@@ -46,10 +46,6 @@ server/           # Python Flask backend
    pip install -r requirements.txt
    ```
 
-5. Create a `.env` file with the following content:
-   ```
-   OPENAI_API_KEY=your_openai_api_key
-   ```
 
 6. Run the Flask server:
    ```
@@ -62,7 +58,7 @@ The server will start at http://localhost:5000.
 
 1. Navigate to the client directory:
    ```
-   cd client
+   cd frontend
    ```
 
 2. Install dependencies:
