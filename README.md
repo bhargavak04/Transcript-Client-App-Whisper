@@ -104,4 +104,4 @@ The application will open at http://localhost:3000.
 - **Whisper Download**:
 
     -To download the Whisper model visit (https://huggingface.co/openai/whisper-small)
-    - change the self.model_path to your local path
+    - change the self.model_path to your local path in backend/transcription.py
