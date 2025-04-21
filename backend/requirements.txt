@@ -1,0 +1,11 @@
+flask
+flask-cors
+sqlalchemy
+python-dotenv
+pydub
+werkzeug
+transformers
+torch
+librosa
+soundfile
+ffmpeg-python
