@@ -27,6 +27,10 @@ backend/           # Python Flask backend
 
 ### Backend Setup
 
+ **Whisper Download**:
+   - To download the Whisper model visit (https://huggingface.co/openai/whisper-small)
+   - change the self.model_path to your local path in backend/transcription.py
+
 1. Navigate to the server directory:
    ```
    cd backend
@@ -51,7 +55,19 @@ backend/           # Python Flask backend
    ```
    python app.py
    ```
-
+7. For Deployment (Optional):
+   
+   Replace this in app.py :
+   ```
+   if __name__ == '__main__':
+    app.run(debug=True)
+   ```
+   With :
+   ```
+   if __name__ == '__main__':
+   import uvicorn
+   uvicorn.run(app,host=0.0.0.0,port=5000)
+   ```
 The server will start at http://localhost:5000.
 
 ### Frontend Setup
@@ -74,6 +90,10 @@ The server will start at http://localhost:5000.
 4. Start the development server:
    ```
    npm start
+   ```
+5. For  deployment server:
+   ```
+   npm run  build
    ```
 
 The application will open at http://localhost:3000.
@@ -101,7 +121,3 @@ The application will open at http://localhost:3000.
   - OpenAI Whisper API
   - Pydub for audio processing
 
-- **Whisper Download**:
-
-    -To download the Whisper model visit (https://huggingface.co/openai/whisper-small)
-    - change the self.model_path to your local path in backend/transcription.py
