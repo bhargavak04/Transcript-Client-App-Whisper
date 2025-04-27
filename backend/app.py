@@ -11,6 +11,8 @@ load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
+# Allow uploads up to 1GB (adjust as needed)
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024 * 1024
 CORS(app)  # Enable CORS for all routes
 
 # Configure uploads folder

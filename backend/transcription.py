@@ -66,35 +66,43 @@ class TranscriptionService:
             raise
     
     def transcribe(self, file_path):
-        """Transcribe audio file using local Whisper model and detect language"""
+        """Transcribe arbitrarily long audio by chunking into 30-second segments for Whisper."""
         try:
             # Convert to WAV format at 16kHz
             wav_path = self.convert_to_wav(file_path)
             
-            # Load audio
             import librosa
-            audio, _ = librosa.load(wav_path, sr=16000)
+            import numpy as np
+            audio, sr = librosa.load(wav_path, sr=16000)
+            chunk_duration = 30  # seconds
+            chunk_samples = chunk_duration * sr
+            total_samples = len(audio)
+            num_chunks = int(np.ceil(total_samples / chunk_samples))
             
-            # Generate transcription
-            # (language detection will be done on the transcription text)
-            
-            # Process audio with model
-            input_features = self.processor(audio, sampling_rate=16000, return_tensors="pt").input_features
-            input_features = input_features.to(self.device)
-            
-            # Generate transcription
-            predicted_ids = self.model.generate(input_features)
-            transcription = self.processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
+            all_transcripts = []
+            for i in range(num_chunks):
+                start = int(i * chunk_samples)
+                end = int(min((i + 1) * chunk_samples, total_samples))
+                audio_chunk = audio[start:end]
+                if len(audio_chunk) == 0:
+                    continue
+                input_features = self.processor(audio_chunk, sampling_rate=16000, return_tensors="pt").input_features
+                input_features = input_features.to(self.device)
+                predicted_ids = self.model.generate(input_features)
+                chunk_transcript = self.processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
+                all_transcripts.append(chunk_transcript)
+            transcription = " ".join(all_transcripts)
 
-            # Detect language using langdetect
+            # Detect language using langdetect (on first chunk or full text)
+            from langdetect import detect
             try:
-                language = detect(transcription)
+                language = detect(all_transcripts[0] if all_transcripts else "")
             except Exception as e:
                 print(f"[DEBUG] langdetect failed: {e}")
                 language = None
 
             print(f"[DEBUG] Detected language: {language}")
-            print(f"[DEBUG] Transcription: {transcription}")
+            print(f"[DEBUG] Transcription: {transcription[:200]}...")
             
             # Clean up temp file
             if os.path.exists(wav_path) and wav_path.endswith('.wav'):

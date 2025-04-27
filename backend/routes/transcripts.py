@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
+from werkzeug.exceptions import RequestEntityTooLarge
 from models import Session, User, Transcript
 import os
 import sys
@@ -9,6 +10,11 @@ from tasks import transcribe_audio_task
 
 transcription_service = TranscriptionService()
 transcripts_bp = Blueprint('transcripts', __name__)
+
+# Handle large file upload errors
+@transcripts_bp.errorhandler(RequestEntityTooLarge)
+def handle_large_file(e):
+    return jsonify({'error': 'File is too large. Maximum allowed size is 1GB.'}), 413
 
 @transcripts_bp.route('/transcribe', methods=['POST'])
 def transcribe_audio():

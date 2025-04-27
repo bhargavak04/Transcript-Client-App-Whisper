@@ -58,6 +58,15 @@ python app.py
 celery -A celery_app.celery worker --loglevel=info --pool=solo
 ```
 
+# Optional: For Linux/macOS (recommended for production)
+# Run Celery with multiple worker processes for true concurrency:
+```bash
+celery -A celery_app.celery worker --loglevel=info --concurrency=4
+```
+- Replace `4` with the number of concurrent tasks (workers) you want to run, depending on your CPU cores and workload.
+- This allows multiple users to have their audio transcribed in parallel.
+
+
 ### 3. Frontend Setup (React)
 
 ```bash

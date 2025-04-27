@@ -34,6 +34,47 @@ const TranscriptCard = ({ transcript }) => {
     ? transcript.text.substring(0, 150) + '...' 
     : transcript.text;
   
+  // Request notification permission once on mount
+  React.useEffect(() => {
+    if (window.Notification && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Notify user when transcript is completed (only once per transcript)
+  React.useEffect(() => {
+    if (transcript.status === 'completed') {
+      const notifiedKey = `transcript_notified_${transcript.id}`;
+      if (localStorage.getItem(notifiedKey)) return; // Already notified
+
+      let notified = false;
+      if (window.Notification && Notification.permission === 'granted') {
+        new Notification('Transcription Complete', {
+          body: `${transcript.file_name.replace(/\.[^/.]+$/, "")} is ready!`,
+        });
+        notified = true;
+      }
+      // Fallback: play a beep if notifications are not available or blocked
+      if (!notified) {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = ctx.createOscillator();
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(880, ctx.currentTime); // 880 Hz beep
+          oscillator.connect(ctx.destination);
+          oscillator.start();
+          oscillator.stop(ctx.currentTime + 0.3);
+        } catch (e) {
+          // No audio context available
+        }
+        if (window.Notification && Notification.permission === 'denied') {
+          console.warn('Notification permission denied. Enable notifications for popup alerts.');
+        }
+      }
+      localStorage.setItem(notifiedKey, '1');
+    }
+  }, [transcript.status, transcript.id]);
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg">
       <div className="p-5">
@@ -45,6 +86,17 @@ const TranscriptCard = ({ transcript }) => {
             {transcript.language && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1 mr-2">
                 {languageMap[transcript.language] || transcript.language}
+              </span>
+            )}
+            {transcript.status === 'processing' && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mt-1 mr-2">
+                <svg className="animate-spin h-4 w-4 mr-1 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                Processing
+              </span>
+            )}
+            {transcript.status === 'failed' && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mt-1 mr-2">
+                Failed
               </span>
             )}
           </div>
