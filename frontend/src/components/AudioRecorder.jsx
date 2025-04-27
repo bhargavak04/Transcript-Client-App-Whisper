@@ -8,16 +8,43 @@ const AudioRecorder = ({ onTranscriptAdded }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [error, setError] = useState(null);
+  const [devices, setDevices] = useState([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const { user } = useUser();
   
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const timerRef = useRef(null);
+
+  // Fetch available audio input devices
+  React.useEffect(() => {
+    async function getDevices() {
+      try {
+        // Need to prompt for permissions first to get device labels
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        const allDevices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = allDevices.filter(d => d.kind === 'audioinput');
+        setDevices(audioInputs);
+        if (audioInputs.length > 0) {
+          setSelectedDeviceId(audioInputs[0].deviceId);
+        }
+      } catch (e) {
+        setDevices([]);
+      }
+    }
+    getDevices();
+  }, []);
+
+  const handleDeviceChange = (e) => {
+    setSelectedDeviceId(e.target.value);
+  };
   
   const startRecording = async () => {
     setError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Use selected deviceId if available
+      const constraints = selectedDeviceId ? { audio: { deviceId: { exact: selectedDeviceId } } } : { audio: true };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -107,24 +134,38 @@ const AudioRecorder = ({ onTranscriptAdded }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-md">
-      <div className="mb-8 text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Record Audio</h2>
-        <p className="text-gray-600">
+    <div className="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto mt-8">
+      <h2 className="text-xl font-semibold mb-4">Record New Audio</h2>
+      {devices.length > 1 && (
+        <div className="mb-4">
+          <label htmlFor="mic-select" className="block text-sm font-medium text-gray-700 mb-1">Select Microphone:</label>
+          <select
+            id="mic-select"
+            className="border border-gray-300 rounded px-2 py-1 text-sm"
+            value={selectedDeviceId}
+            onChange={handleDeviceChange}
+          >
+            {devices.map((device) => (
+              <option key={device.deviceId} value={device.deviceId}>{device.label || `Microphone (${device.deviceId})`}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      <div className="mb-8 flex flex-col items-center justify-center text-center">
+        <p className="text-gray-600 mb-4">
           {isRecording 
             ? `Recording... ${formatTime(recordingTime)}` 
             : isProcessing 
               ? 'Processing your audio...' 
               : 'Click the button below to start recording'}
         </p>
-      </div>
-      
-      <div className="mb-6">
-        <RecordButton 
-          isRecording={isRecording} 
-          startRecording={startRecording} 
-          stopRecording={stopRecording} 
-        />
+        <div className="mt-2 flex justify-center w-full">
+          <RecordButton 
+            isRecording={isRecording} 
+            startRecording={startRecording} 
+            stopRecording={stopRecording} 
+          />
+        </div>
       </div>
       
       {isProcessing && (

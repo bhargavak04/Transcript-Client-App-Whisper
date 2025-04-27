@@ -15,7 +15,7 @@ const languageMap = {
   // Add more as needed
 };
 
-const TranscriptCard = ({ transcript }) => {
+const TranscriptCard = ({ transcript, onDeleted }) => {
   const [expanded, setExpanded] = useState(false);
   
   const formatDate = (dateString) => {
@@ -33,6 +33,24 @@ const TranscriptCard = ({ transcript }) => {
   const previewText = transcript.text.length > 150 
     ? transcript.text.substring(0, 150) + '...' 
     : transcript.text;
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this transcript and its audio file?')) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const api = await import('../api');
+      await api.default.deleteTranscript(transcript.id);
+      if (onDeleted) onDeleted(transcript.id);
+    } catch (err) {
+      setDeleteError('Failed to delete transcript.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
   
   // Request notification permission once on mount
   React.useEffect(() => {
@@ -78,6 +96,24 @@ const TranscriptCard = ({ transcript }) => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg">
       <div className="p-5">
+        <div className="flex justify-end mb-2">
+          <button
+            className={`text-xs text-red-600 hover:underline transition ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={handleDelete}
+            disabled={isDeleting}
+            title="Delete transcript"
+            style={{ background: 'none', border: 'none', padding: 0 }}
+          >
+            {isDeleting ? (
+              <svg className="animate-spin h-4 w-4 inline mr-1 text-red-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+            ) : null}
+            Delete
+          </button>
+        </div>
+        {deleteError && (
+          <div className="mb-2 text-xs text-red-600">{deleteError}</div>
+        )}
+
         <div className="flex justify-between items-start mb-3">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 truncate">

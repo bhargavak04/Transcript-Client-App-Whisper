@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import TranscriptCard from './TranscriptCard';
 
-const TranscriptList = ({ transcripts, isLoading }) => {
+const TranscriptList = ({ transcripts, isLoading, onDeleted }) => {
+  const [localTranscripts, setLocalTranscripts] = useState(transcripts);
+
+  React.useEffect(() => {
+    setLocalTranscripts(transcripts);
+  }, [transcripts]);
+
+  const handleDeleted = (id) => {
+    setLocalTranscripts((prev) => prev.filter(t => t.id !== id));
+    if (onDeleted) onDeleted(id);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center my-8">
@@ -32,8 +43,8 @@ const TranscriptList = ({ transcripts, isLoading }) => {
   
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {transcripts.map((transcript) => (
-        <TranscriptCard key={transcript.id} transcript={transcript} />
+      {localTranscripts.map((transcript) => (
+        <TranscriptCard key={transcript.id} transcript={transcript} onDeleted={handleDeleted} />
       ))}
     </div>
   );

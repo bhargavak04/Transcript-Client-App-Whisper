@@ -32,6 +32,10 @@ const Dashboard = () => {
     }
   }, [user]);
   
+  const handleTranscriptDeleted = () => {
+    fetchTranscripts();
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -69,7 +73,7 @@ const Dashboard = () => {
         </div>
       )}
       
-      <TranscriptList transcripts={transcripts} isLoading={isLoading} />
+      <TranscriptList transcripts={transcripts} isLoading={isLoading} onDeleted={handleTranscriptDeleted} />
     </div>
   );
 };
