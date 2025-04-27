@@ -2,3 +2,5 @@ envs/
 __pycache__
 whisper-small/
 node_modules/
+uploads/
+transcripts.db

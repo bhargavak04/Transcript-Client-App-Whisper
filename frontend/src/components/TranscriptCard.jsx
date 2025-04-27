@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
 import { ClockIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
+// Optional: map language code to full name for better UX
+const languageMap = {
+  en: 'English',
+  hi: 'Hindi',
+  fr: 'French',
+  es: 'Spanish',
+  de: 'German',
+  zh: 'Chinese',
+  ja: 'Japanese',
+  ru: 'Russian',
+  ar: 'Arabic',
+  // Add more as needed
+};
+
 const TranscriptCard = ({ transcript }) => {
   const [expanded, setExpanded] = useState(false);
   
@@ -24,11 +38,20 @@ const TranscriptCard = ({ transcript }) => {
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg">
       <div className="p-5">
         <div className="flex justify-between items-start mb-3">
-          <h3 className="text-lg font-semibold text-gray-800 truncate">
-            {transcript.file_name.replace(/\.[^/.]+$/, "")}
-          </h3>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 truncate">
+              {transcript.file_name.replace(/\.[^/.]+$/, "")}
+            </h3>
+            {transcript.language && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1 mr-2">
+                {languageMap[transcript.language] || transcript.language}
+              </span>
+            )}
+          </div>
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            {(transcript.duration / 60).toFixed(1)} min
+            {transcript.duration >= 60
+              ? `${Math.floor(transcript.duration / 60)} min ${Math.round(transcript.duration % 60)} sec`
+              : `${Math.round(transcript.duration)} sec`}
           </span>
         </div>
         
@@ -42,6 +65,27 @@ const TranscriptCard = ({ transcript }) => {
             {expanded ? transcript.text : previewText}
           </p>
         </div>
+
+        {transcript.file_path && (
+          <div className="mb-4">
+            <div className="bg-gray-50 rounded-md border border-gray-200 p-2 flex items-center shadow-sm">
+              <audio
+                controls
+                src={`http://localhost:5000/${transcript.file_path.replace(/^\\+/, '')}`}
+                className="w-full accent-blue-600"
+                style={{
+                  background: 'transparent',
+                  outline: 'none',
+                  borderRadius: '0.5rem',
+                  height: '2.25rem',
+                  minWidth: 0
+                }}
+              >
+                Your browser does not support the audio element.
+              </audio>
+            </div>
+          </div>
+        )}
         
         {transcript.text.length > 150 && (
           <button

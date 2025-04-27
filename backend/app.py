@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
@@ -26,6 +26,12 @@ transcription_service = TranscriptionService(model_size=model_size, upload_folde
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api')
 app.register_blueprint(transcripts_bp, url_prefix='/api')
+
+# Route to serve uploaded audio files
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    uploads = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+    return send_from_directory(uploads, filename)
 
 @app.route('/api/health', methods=['GET'])
 def health_check():

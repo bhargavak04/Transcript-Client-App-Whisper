@@ -2,12 +2,17 @@ from flask import Blueprint, request, jsonify, current_app
 from models import Session, User, Transcript
 import os
 import sys
+from transcription import TranscriptionService
+from celery_app import celery
+from celery.result import AsyncResult
+from tasks import transcribe_audio_task
 
+transcription_service = TranscriptionService()
 transcripts_bp = Blueprint('transcripts', __name__)
 
 @transcripts_bp.route('/transcribe', methods=['POST'])
 def transcribe_audio():
-    """Transcribe audio file and save transcript"""
+    """Handle audio file upload and transcription (asynchronously via Celery)"""
     if 'audio' not in request.files:
         return jsonify({"error": "No audio file provided"}), 400
     
@@ -18,47 +23,50 @@ def transcribe_audio():
     if not user_id or not user_name:
         return jsonify({"error": "User ID and name are required"}), 400
     
-    session = Session()
-    try:
-        # Access the global transcription service
-        from app import transcription_service
-        
-        # Check if user exists, create if not
-        user = session.query(User).filter_by(id=user_id).first()
-        if not user:
-            user = User(id=user_id, name=user_name)
-            session.add(user)
-            session.commit()
-        
-        # Save audio file
-        file_path, file_name = transcription_service.save_audio_file(audio_file)
-        
-        # Get audio duration
-        duration = transcription_service.get_audio_duration(file_path)
-        
-        # Transcribe audio
-        transcript_text = transcription_service.transcribe(file_path)
-        
-        # Save transcript to database
-        transcript = Transcript(
-            user_id=user_id,
-            file_name=file_name,
-            file_path=file_path,
-            text=transcript_text,
-            duration=duration
-        )
-        
-        session.add(transcript)
-        session.commit()
-        
-        return jsonify(transcript.to_dict()), 201
+    # Save audio file
+    file_path, file_name = transcription_service.save_audio_file(audio_file)
+    duration = transcription_service.get_audio_duration(file_path)
+
+    # Create Transcript row (status='processing')
+    from models import Transcript, db_session
+    session = db_session()
+    transcript = Transcript(
+        user_id=user_id,
+        file_name=file_name,
+        file_path=file_path,
+        text='',
+        duration=duration,
+        language=None,
+        status='processing',
+        job_id=None
+    )
+    session.add(transcript)
+    session.commit()
+    transcript_id = transcript.id
+    session.close()
+
+    # Enqueue transcription job, pass transcript_id
+    task = transcribe_audio_task.delay(file_path, file_name, user_id, duration, transcript_id)
     
-    except Exception as e:
-        session.rollback()
-        return jsonify({"error": str(e)}), 500
-    
-    finally:
-        session.close()
+    # Update job_id in the transcript row
+    session = db_session()
+    transcript = session.query(Transcript).get(transcript_id)
+    transcript.job_id = task.id
+    session.commit()
+    session.close()
+
+    return jsonify({'message': 'Transcription started', 'job_id': task.id, 'transcript_id': transcript_id}), 202
+
+@transcripts_bp.route('/job_status/<job_id>', methods=['GET'])
+def job_status(job_id):
+    """Check the status/result of a transcription job"""
+    task = AsyncResult(job_id, app=celery)
+    response = {'job_id': job_id, 'state': task.state}
+    if task.state == 'SUCCESS':
+        response['result'] = task.result
+    elif task.state == 'FAILURE':
+        response['error'] = str(task.info)
+    return jsonify(response)
 
 @transcripts_bp.route('/transcripts', methods=['GET'])
 def get_transcripts():

@@ -4,6 +4,7 @@ from pydub import AudioSegment
 import tempfile
 from werkzeug.utils import secure_filename
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
+from langdetect import detect
 
 class TranscriptionService:
     def __init__(self, model_size="small", upload_folder='uploads'):
@@ -65,7 +66,7 @@ class TranscriptionService:
             raise
     
     def transcribe(self, file_path):
-        """Transcribe audio file using local Whisper model"""
+        """Transcribe audio file using local Whisper model and detect language"""
         try:
             # Convert to WAV format at 16kHz
             wav_path = self.convert_to_wav(file_path)
@@ -74,6 +75,9 @@ class TranscriptionService:
             import librosa
             audio, _ = librosa.load(wav_path, sr=16000)
             
+            # Generate transcription
+            # (language detection will be done on the transcription text)
+            
             # Process audio with model
             input_features = self.processor(audio, sampling_rate=16000, return_tensors="pt").input_features
             input_features = input_features.to(self.device)
@@ -81,12 +85,22 @@ class TranscriptionService:
             # Generate transcription
             predicted_ids = self.model.generate(input_features)
             transcription = self.processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
+
+            # Detect language using langdetect
+            try:
+                language = detect(transcription)
+            except Exception as e:
+                print(f"[DEBUG] langdetect failed: {e}")
+                language = None
+
+            print(f"[DEBUG] Detected language: {language}")
+            print(f"[DEBUG] Transcription: {transcription}")
             
             # Clean up temp file
             if os.path.exists(wav_path) and wav_path.endswith('.wav'):
                 os.remove(wav_path)
             
-            return transcription
+            return transcription, language
         
         except Exception as e:
             print(f"Error transcribing audio: {e}")

@@ -55,7 +55,15 @@ const AudioRecorder = ({ onTranscriptAdded }) => {
         
         try {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const fileName = `recording_${new Date().toISOString()}.webm`;
+          // Use a more readable file name: Recording_YYYY-MM-DD_HH-MM-SS.webm
+          const now = new Date();
+          const formatted = now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0') + '_' +
+            String(now.getHours()).padStart(2, '0') + '-' +
+            String(now.getMinutes()).padStart(2, '0') + '-' +
+            String(now.getSeconds()).padStart(2, '0');
+          const fileName = `Recording_${formatted}.webm`;
           
           // Create form data to send to backend
           const formData = new FormData();
@@ -70,9 +78,12 @@ const AudioRecorder = ({ onTranscriptAdded }) => {
             },
           });
           
+          console.log('Transcribe API response:', response.data);
           // Handle success
-          if (response.data && response.data.transcript) {
+          if (response.data && (response.data.text || response.data.transcript)) {
             onTranscriptAdded(response.data);
+          } else {
+            setError('No transcript returned from backend.');
           }
         } catch (err) {
           setError('Failed to process audio. Please try again.');

@@ -19,9 +19,72 @@ backend/           # Python Flask backend
 
 ## Prerequisites
 
-- Node.js and npm
-- Python 3.8+
-- OpenAI API key
+- [Node.js and npm](https://nodejs.org/)
+- [Python 3.8+](https://www.python.org/downloads/)
+- [Redis](https://redis.io/download) (required for Celery background tasks)
+
+---
+
+## Setup Instructions
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/bhargavak04/Transcript-Client-App-Whisper
+cd Transcript-Client
+```
+
+### 2. Backend Setup (Flask + Celery)
+
+```bash
+cd backend
+# Create and activate a Python virtual environment
+python -m venv envs
+# On Windows:
+envs\Scripts\activate
+# On Mac/Linux:
+source envs/bin/activate
+
+# Install Python dependencies
+pip install -r new_requirements.txt
+
+# Make sure Redis is running locally (default: redis://localhost:6379/0)
+# Download and install from: https://redis.io/download
+# Start Redis server before running the backend
+
+# Start the Flask backend
+python app.py
+
+# In a new terminal, activate the same virtual environment and start Celery worker:
+celery -A celery_app.celery worker --loglevel=info --pool=solo
+```
+
+### 3. Frontend Setup (React)
+
+```bash
+cd ../frontend
+npm install
+npm start
+```
+
+### 4. Clerk Authentication
+- Set up a [Clerk](https://clerk.com/) account for authentication.
+- Add your Clerk publishable key to the frontend as needed.
+
+---
+
+## Additional Notes
+- Uploaded audio files are stored in the `uploads/` directory (gitignored).
+- Transcripts are stored in `backend/transcripts.db` (gitignored).
+- Make sure Redis is running before starting Celery.
+- For production, use a Linux server for better Celery concurrency.
+- Whisper model files should be present in the backend directory (see `whisper-small/`).
+
+---
+
+## Useful Links
+- [Redis Download](https://redis.io/download)
+- [Clerk Documentation](https://clerk.com/docs)
+
 
 ## Setup Instructions
 
@@ -55,7 +118,25 @@ backend/           # Python Flask backend
    ```
    python app.py
    ```
-7. For Deployment (Optional):
+
+7. **Start the Celery worker (in a new terminal):**
+   - Make sure Redis is running before starting Celery.
+   - Activate your virtual environment in the new terminal:
+     - On Windows:
+       ```
+       envs\Scripts\activate
+       ```
+     - On Mac/Linux:
+       ```
+       source envs/bin/activate
+       ```
+   - Start the Celery worker (Windows requires `--pool=solo`):
+     ```
+     celery -A celery_app.celery worker --loglevel=info --pool=solo
+     ```
+   - Celery must be running at all times to process background transcription tasks.
+
+8. For Deployment (Optional):
    
    Replace this in app.py :
    ```
