@@ -58,8 +58,8 @@ python app.py
 celery -A celery_app.celery worker --loglevel=info --pool=solo
 ```
 
-# Optional: For Linux/macOS (recommended for production)
-# Run Celery with multiple worker processes for true concurrency:
+### Optional: For Linux/macOS (recommended for production)
+### Run Celery with multiple worker processes for true concurrency:
 ```bash
 celery -A celery_app.celery worker --loglevel=info --concurrency=4
 ```
